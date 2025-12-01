@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fake Audio Detection – Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 40px;
+        }
+        .container {
+            width: 50%;
+            background: white;
+            padding: 30px;
+            margin: auto;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        button {
+            background: black;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #333;
+        }
+        audio {
+            margin-top: 20px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Fake Audio Detection – Dashboard</h1>
+
+    <div class="container">
+
+        <form action="/predict" method="post" enctype="multipart/form-data">
+            <label>Select Audio File (.wav)</label><br><br>
+            <input type="file" name="audio" accept=".wav,.mp3" required><br><br>
+            <button type="submit">Analyze</button>
+        </form>
+
+        <hr>
+
+        {% if prediction %}
+            <h3>Prediction Result:</h3>
+            <p style="font-size:22px; font-weight:bold;">
+                {{ prediction }}
+            </p>
+        {% endif %}
+
+        {% if audio_path %}
+            <h3>Play Uploaded Audio:</h3>
+            <audio controls>
+                <source src="{{ audio_path }}" type="audio/wav">
+                Your browser does not support audio playback.
+            </audio>
+        {% endif %}
+
+    </div>
+
+</body>
+</html>
