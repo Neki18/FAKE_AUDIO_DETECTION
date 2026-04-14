@@ -2,73 +2,118 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Fake Audio Detection – Dashboard</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Authenticator | AI Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            padding: 40px;
-        }
-        .container {
-            width: 50%;
-            background: white;
-            padding: 30px;
-            margin: auto;
-            border-radius: 15px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-        }
-        button {
-            background: black;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a, #020617);
+            min-height: 100vh;
             color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
-        button:hover {
-            background: #333;
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 2rem;
         }
-        audio {
-            margin-top: 20px;
-            width: 100%;
+        .gradient-text {
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .custom-file-upload {
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .file-active {
+            border-color: #4ade80 !important;
+            background: rgba(74, 222, 128, 0.05) !important;
         }
     </style>
 </head>
-
 <body>
 
-    <h1>Fake Audio Detection – Dashboard</h1>
+    <div class="glass-card w-full max-w-xl p-10 shadow-2xl">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold tracking-tight mb-2">
+                Fake Audio <span class="gradient-text">Analysis</span>
+            </h1>
+            <p class="text-slate-400 text-sm font-light uppercase tracking-widest">Fake Audio Verification</p>
+        </header>
 
-    <div class="container">
+        <form action="/predict" method="post" enctype="multipart/form-data" class="space-y-6">
+            <div id="drop-zone" class="custom-file-upload relative group rounded-2xl p-8 text-center cursor-pointer {% if filename %}file-active{% endif %}">
+                <input type="file" name="audio" id="audio-input" accept=".wav,.mp3" required 
+                       class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                
+                <div id="upload-content" class="space-y-3">
+                    {% if filename %}
+                        <svg id="upload-icon" class="w-12 h-12 mx-auto text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p id="file-text" class="text-slate-300 font-medium">Analyzed File:</p>
+                        <p id="file-subtext" class="text-xs mt-1 text-indigo-400 font-bold text-lg">{{ filename }}</p>
+                    {% else %}
+                        <svg id="upload-icon" class="w-12 h-12 mx-auto text-slate-500 group-hover:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
+                        </svg>
+                        <p id="file-text" class="text-slate-300 font-medium">Drop your audio or click to browse</p>
+                        <p id="file-subtext" class="text-xs text-slate-500">Supports WAV and MP3 formats</p>
+                    {% endif %}
+                </div>
+            </div>
 
-        <form action="/predict" method="post" enctype="multipart/form-data">
-            <label>Select Audio File (.wav)</label><br><br>
-            <input type="file" name="audio" accept=".wav,.mp3" required><br><br>
-            <button type="submit">Analyze</button>
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
+                Run Analysis
+            </button>
         </form>
 
-        <hr>
-
         {% if prediction %}
-            <h3>Prediction Result:</h3>
-            <p style="font-size:22px; font-weight:bold;">
-                {{ prediction }}
-            </p>
-        {% endif %}
+        <div class="mt-12 pt-8 border-t border-white/10">
+            <div class="text-center">
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Detection Result</span>
+                <h2 class="text-5xl font-black my-4 tracking-tighter" style="color: {{ status_color }};">
+                    {{ prediction }}
+                </h2>
+                <p class="text-slate-300 font-medium mb-6">Confidence Score: <span class="text-white">{{ confidence }}</span></p>
+            </div>
 
-        {% if audio_path %}
-            <h3>Play Uploaded Audio:</h3>
-            <audio controls>
-                <source src="{{ audio_path }}" type="audio/wav">
-                Your browser does not support audio playback.
-            </audio>
+            <div class="bg-black/30 p-6 rounded-2xl border border-white/5 shadow-inner">
+                <audio controls class="w-full">
+                    <source src="{{ audio_path }}" type="audio/wav">
+                </audio>
+            </div>
+        </div>
         {% endif %}
-
     </div>
 
+    <script>
+        const fileInput = document.getElementById('audio-input');
+        const dropZone = document.getElementById('drop-zone');
+        const uploadContent = document.getElementById('upload-content');
+
+        fileInput.addEventListener('change', function(e) {
+            if (fileInput.files.length > 0) {
+                const fileName = fileInput.files[0].name;
+                
+                // Switch UI to active selection state immediately
+                dropZone.classList.add('file-active');
+                uploadContent.innerHTML = `
+                    <svg class="w-12 h-12 mx-auto text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="text-slate-300 font-medium">File Selected:</p>
+                    <p class="text-indigo-400 font-bold text-lg">${fileName}</p>
+                `;
+            }
+        });
+    </script>
 </body>
 </html>

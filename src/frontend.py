@@ -1,54 +1,51 @@
 import os
-import flask
-from flask import Flask, render_template, request
-from predict_demo import predict_file  # your existing backend model
+from flask import Flask, render_template, request, send_from_directory
+from werkzeug.utils import secure_filename
+from predict_demo import predict_file
 
 app = Flask(__name__)
 
 UPLOAD_FOLDER = "uploads"
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-print(">>> Flask App Loaded")
-
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
-
 @app.route("/predict", methods=["POST"])
 def predict():
     if "audio" not in request.files:
-        return render_template("index.html", prediction="No file uploaded")
+        return render_template("index.html", error="No file uploaded")
 
     audio = request.files["audio"]
+    if audio.filename == '':
+        return render_template("index.html", error="No file selected")
 
-    # Save file
-    save_path = os.path.join(UPLOAD_FOLDER, audio.filename)
+    filename = secure_filename(audio.filename)
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     audio.save(save_path)
 
-    # Get prediction from backend model
-    raw = predict_file(save_path)  # returns ('human', numpy.float64(...))
+    # Model Prediction
+    raw = predict_file(save_path)
+    label = str(raw[0]).upper()
+    confidence = float(raw[1]) * 100
 
-    label = raw[0]                      # human/fake
-    confidence = float(raw[1]) * 100    # convert np.float64 → Python float
+    status_color = "#4ade80" if "HUMAN" in label else "#f87171"
 
-    formatted = f"{label.title()} ({confidence:.2f}% confidence)"
+    # Pass the filename back to the template
+    return render_template(
+        "index.html",
+        prediction=label,
+        confidence=f"{confidence:.2f}%",
+        audio_path=f"/uploads/{filename}",
+        status_color=status_color,
+        filename=filename  # This keeps the UI updated after analysis
+    )
 
-    # This will allow audio playback
-    audio_url = f"/uploads/{audio.filename}"
-
-    return render_template("index.html",
-                           prediction=formatted,
-                           audio_path=audio_url)
-
-
-# Serve uploaded files
 @app.route("/uploads/<path:filename>")
 def uploaded_file(filename):
-    return flask.send_from_directory(UPLOAD_FOLDER, filename)
-
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == "__main__":
-    print(">>> Starting Flask server...")
     app.run(debug=True)
